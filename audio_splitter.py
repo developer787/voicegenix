@@ -1,14 +1,12 @@
 import os
 from pydub import AudioSegment
-from pyannote.audio.features import Pretrained
+from pyannote.audio import Embedding, Sad, Scd, PipelineModel
+from pyannote.pipeline import Diarization
 from pyannote.core import SlidingWindowFeature
 
-
 # Set up speaker diarization model
-model = Pretrained()
-pipeline = model.pipeline()
+pipeline = Diarization(sad=Sad(),scd=Scd(),embedding=Embedding(),method="affinity_propagation")
 pipeline.device = "cpu"
-
 
 def to_audio_segment(annotation, audio_file):
     audio_segment = AudioSegment.from_file(audio_file)
