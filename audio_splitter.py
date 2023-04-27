@@ -1,20 +1,33 @@
 import os
-import librosa
 import numpy as np
 from pyannote.core import Segment
 from pydub import AudioSegment
-from pyannote.audio import Inference
+from einops import rearrange
+from torch.cuda.amp import autocast
+import torchaudio
+import torch
+
+MODEL_NAME = "pyannote/segmentation"
 
 def split_audio_by_speakers(audio_file, output_folder='output'):
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
 
     # Load the pre-trained model
-    diarization = Inference("hbredin/HubertXVec")
+    model = torch.hub.load('pyannote/pyannote-audio', MODEL_NAME, pretrained=True)
+    if torch.cuda.is_available():
+        model.cuda()
 
-    # Apply the pretrained model
-    hypothesis = diarization({"audio": audio_file})
-
+    # Load audio using torchaudio
+    waveform, sample_rate = torchaudio.load(audio_file)
+    if torch.cuda.is_available():
+        waveform = waveform.cuda()
+    
+    # Apply the pretrained model with autocast for faster inference
+    with autocast():
+        hypothesis = model(rearrange(waveform, 'c t -> t c'), sample_rate=sample_rate)
+    
+    # Convert the resulting segmentation to a list of segments
     segments = []
     for segment, _, speaker in hypothesis.itertracks(yield_label=True):
         segments.append((Segment(segment.start, segment.end), speaker))
