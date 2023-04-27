@@ -7,6 +7,7 @@ from pyannote.audio.features import Precomputed
 from pyannote.audio.embedding.extraction import SequenceEmbedding
 from pyannote.audio.tasks.speaker_diarization import SpeakerDiarization
 
+
 def split_audio_by_speakers(audio_file, output_folder='output'):
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
