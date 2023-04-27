@@ -1,12 +1,27 @@
 import os
+import librosa
 from pydub import AudioSegment
 from resemblyzer import VoiceEncoder, preprocess_wav
 from pathlib import Path
 
 
+def preprocess_wav_custom(fpath_or_wav, source_sr=None):
+    if isinstance(fpath_or_wav, str):
+        wav, source_sr = librosa.load(fpath_or_wav, sr=source_sr)
+    else:
+        wav = fpath_or_wav
+    
+    if source_sr is not None:
+        wav = librosa.resample(wav, source_sr, VoiceEncoder().sampling_rate)
+    
+    original_len = len(wav)
+    wav = VoiceEncoder().preprocess_wav(wav)
+    return wav
+
+
 def split_audio_file(input_audio_file: str):
     wav_fpath = Path(input_audio_file)
-    wav = preprocess_wav(wav_fpath)
+    wav = preprocess_wav_custom(wav_fpath)
     encoder = VoiceEncoder("cpu")
 
     embedding = encoder.embed_utterance(wav)
@@ -25,7 +40,3 @@ def split_audio_file(input_audio_file: str):
             os.path.join(speaker_path, f"segment_{i}.wav"), format="wav"
         )
 
-
-if __name__ == "__main__":
-    input_audio_file = "input_audio_file.wav"
-    split_audio_file(input_audio_file)
