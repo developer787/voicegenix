@@ -5,7 +5,7 @@ from pyannote.core import SlidingWindowFeature
 
 
 # Set up speaker diarization model
-model = Pretrained(validate_dir=None)
+model = Pretrained()
 pipeline = model.pipeline()
 pipeline.device = "cpu"
 
