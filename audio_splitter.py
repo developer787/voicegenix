@@ -14,8 +14,7 @@ def preprocess_wav_custom(fpath_or_wav, source_sr=None):
     if source_sr is not None:
         wav = librosa.resample(wav, source_sr, VoiceEncoder().sampling_rate)
     
-    original_len = len(wav)
-    wav = VoiceEncoder().preprocess_wav(wav)
+    wav = VoiceEncoder().preprocess_wav(wav)    
     return wav
 
 
