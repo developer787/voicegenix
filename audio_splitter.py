@@ -3,25 +3,17 @@ import librosa
 import numpy as np
 from pyannote.core import Segment
 from pydub import AudioSegment
-from pyannote.audio.pipelines import SpeakerDiarization
-from pyannote.audio import PipelineModel
+from pyannote.audio import Inference
 
 def split_audio_by_speakers(audio_file, output_folder='output'):
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
 
-    # Setup the speaker diarization pipeline
-    speaker_diarization = SpeakerDiarization()
-    preprocessor = {
-        "audio": PipelineModel(),
-        "sad": PipelineModel(),
-        "scd": PipelineModel(),
-        "emb": PipelineModel(),
-    }
-    diarization = speaker_diarization.from_pretrained('dia_dihard', preprocessor)
+    # Load the pre-trained model
+    diarization = Inference("hbredin/HubertXVec")
 
     # Apply the pretrained model
-    hypothesis = diarization({"audio": audio_file})
+    hypothesis = diarization(["audio": audio_file])
 
     segments = []
     for segment, _, speaker in hypothesis.itertracks(yield_label=True):
