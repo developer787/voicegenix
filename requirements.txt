@@ -1,2 +1,2 @@
-pyannote.audio==1.1.1
+pyannote.audio==1.0.1
 pydub
