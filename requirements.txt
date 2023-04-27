@@ -6,3 +6,5 @@ pydub>=0.25.1
 pyannote.audio
 pyannote.pipeline
 pyannote.database
+einops>=0.3.0
+
