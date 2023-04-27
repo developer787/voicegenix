@@ -1,41 +1,41 @@
 import os
-import librosa
-from pydub import AudioSegment
+import numpy as np
 from resemblyzer import VoiceEncoder, preprocess_wav
-from pathlib import Path
+from pydub import AudioSegment
 
 
-def preprocess_wav_custom(fpath_or_wav, source_sr=None):
-    if isinstance(fpath_or_wav, str):
-        wav, source_sr = librosa.load(fpath_or_wav, sr=source_sr)
-    else:
-        wav = fpath_or_wav
-    
-    if source_sr is not None:
-        wav = librosa.resample(wav, source_sr, VoiceEncoder().sampling_rate)
-    
-    wav = VoiceEncoder().preprocess_wav(wav)    
-    return wav
+def speaker_diarization(audio_path, output_dir):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
+    # Load audio file
+    wav = preprocess_wav(audio_path)
+    wav_duration = len(wav) / 16000
 
-def split_audio_file(input_audio_file: str):
-    wav_fpath = Path(input_audio_file)
-    wav = preprocess_wav_custom(wav_fpath)
-    encoder = VoiceEncoder("cpu")
+    # Derive embeddings and determine the speaker clusters
+    encoder = VoiceEncoder()
+    embeds = encoder.embed_utterance(wav, rate=0.1)
+    clusterer = encoder.cluster(embeds)
+    cluster_labels = clusterer.labels_
 
-    embedding = encoder.embed_utterance(wav)
-    speaker_embeds = [embedding]
+    n_speakers = max(cluster_labels) + 1
 
-    times, speakers = encoder.find_speaker_times(wav, speaker_embeds)
+    # Initialize audio segment variables
+    audio_segment = AudioSegment.from_file(audio_path)
+    audio_splits = [AudioSegment.empty()] * n_speakers
 
-    audio = AudioSegment.from_wav(input_audio_file)
+    # Iterate through audio and assign segments to corresponding speakers
+    start = 0
+    for cluster_label, duration_ in zip(cluster_labels, np.diff(np.concatenate(([0.], clusterer.cluster_centers_[:, 1])))):
+        duration_ms = int(duration_ * 1000)
+        audio_splits[cluster_label] += audio_segment[start:start + duration_ms]
+        start += duration_ms
 
-    for i, (start, end) in enumerate(times):
-        speaker_path = os.path.join("speakers", "speaker_" + str(speakers[i]))
-        os.makedirs(speaker_path, exist_ok=True)
+    # Save audio segments by speakers in output directories
+    for i, audio_split in enumerate(audio_splits):
+        speaker_dir = os.path.join(output_dir, f'speaker_{i + 1}')
+        os.makedirs(speaker_dir, exist_ok=True)
 
-        segment = audio[start * 1000 : end * 1000] # pydub works with milliseconds
-        segment.export(
-            os.path.join(speaker_path, f"segment_{i}.wav"), format="wav"
-        )
-
+        audio_path = os.path.join(speaker_dir, f'speaker_{i + 1}.wav')
+        audio_split.export(audio_path, format='wav')
+        print(f'Saved Speaker {i + 1} audio at {audio_path}')
