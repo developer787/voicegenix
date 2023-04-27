@@ -1,9 +1,2 @@
-webrtcvad
-torch>=1.9.0
-torchaudio>=0.9.0
-librosa>=0.8.1
-pydub>=0.25.1
-pyannote.audio==1.1.1
-pyannote.pipeline
-pyannote.database
-einops>=0.3.0
+pydub
+resemblyzer
