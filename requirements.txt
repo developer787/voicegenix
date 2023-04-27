@@ -1,4 +1,5 @@
 resemblyzer
 pydub
 librosa==0.7.2
-numba
+numba==0.48.0
+```
