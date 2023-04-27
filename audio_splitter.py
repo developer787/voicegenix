@@ -13,7 +13,7 @@ def split_audio_by_speakers(audio_file, output_folder='output'):
     diarization = Inference("hbredin/HubertXVec")
 
     # Apply the pretrained model
-    hypothesis = diarization(["audio": audio_file])
+    hypothesis = diarization({"audio": audio_file})
 
     segments = []
     for segment, _, speaker in hypothesis.itertracks(yield_label=True):
