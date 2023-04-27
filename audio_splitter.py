@@ -1,41 +1,43 @@
 import os
-import numpy as np
-from resemblyzer import VoiceEncoder, preprocess_wav
 from pydub import AudioSegment
+from pyannote.audio.features import Pretrained
+from pyannote.core import SlidingWindowFeature
+
+
+# Set up speaker diarization model
+model = Pretrained(validate_dir=None)
+pipeline = model.pipeline()
+pipeline.device = "cpu"
+
+
+def to_audio_segment(annotation, audio_file):
+    audio_segment = AudioSegment.from_file(audio_file)
+    start_time, end_time = int(annotation.start * 1000), int(annotation.end * 1000)
+    return audio_segment[start_time:end_time]
 
 
 def speaker_diarization(audio_path, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Load audio file
-    wav = preprocess_wav(audio_path)
-    wav_duration = len(wav) / 16000
+    # Speaker diarization
+    diarization = pipeline({'audio': audio_path})
 
-    # Derive embeddings and determine the speaker clusters
-    encoder = VoiceEncoder()
-    embeds = encoder.embed_utterance(wav, rate=0.1)
-    clusterer = encoder.cluster(embeds)
-    cluster_labels = clusterer.labels_
+    speakers = {}
+    for speaker, segment in diarization.itertracks(yield_label=True):
+        if speaker not in speakers:
+            speakers[speaker] = []
 
-    n_speakers = max(cluster_labels) + 1
+        audio_segment = to_audio_segment(segment, audio_path)
+        speakers[speaker].append(audio_segment)
 
-    # Initialize audio segment variables
-    audio_segment = AudioSegment.from_file(audio_path)
-    audio_splits = [AudioSegment.empty()] * n_speakers
+    # Save audio segments by speakers
+    for speaker, audio_segments in speakers.items():
+        speaker_dir = os.path.join(output_dir, f'speaker_{speaker}')
+        if not os.path.exists(speaker_dir):
+            os.makedirs(speaker_dir)
 
-    # Iterate through audio and assign segments to corresponding speakers
-    start = 0
-    for cluster_label, duration_ in zip(cluster_labels, np.diff(np.concatenate(([0.], clusterer.cluster_centers_[:, 1])))):
-        duration_ms = int(duration_ * 1000)
-        audio_splits[cluster_label] += audio_segment[start:start + duration_ms]
-        start += duration_ms
-
-    # Save audio segments by speakers in output directories
-    for i, audio_split in enumerate(audio_splits):
-        speaker_dir = os.path.join(output_dir, f'speaker_{i + 1}')
-        os.makedirs(speaker_dir, exist_ok=True)
-
-        audio_path = os.path.join(speaker_dir, f'speaker_{i + 1}.wav')
-        audio_split.export(audio_path, format='wav')
-        print(f'Saved Speaker {i + 1} audio at {audio_path}')
+        for i, audio_segment in enumerate(audio_segments):
+            audio_path = os.path.join(speaker_dir, f'segment_{i + 1}.wav')
+            audio_segment.export(audio_path, format='wav')
+            print(f'Saved Speaker {speaker} segment {i + 1} audio at {audio_path}')
