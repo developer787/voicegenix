@@ -4,20 +4,19 @@ import numpy as np
 from pyannote.core import Segment
 from pydub import AudioSegment
 from pyannote.pipeline import Pipeline
-from pyannote.database import get_protocol, FileFinder
-from pyannote.audio.embedding import SpeechTurnEmbedding
-from pyannote.audio.tasks.speaker_diarization import SpeakerDiarization
+
+# Speaker diarization pipeline
+SPEAKER_DIARIZATION_MODEL = "dia_dihard"
+
+# Load the pre-trained model
+pretrained = Pipeline.from_pretrained(SPEAKER_DIARIZATION_MODEL)
 
 def split_audio_by_speakers(audio_file, output_folder='output'):
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
 
-    # Load the pre-trained speech turn embedding model
-    embedding = SpeechTurnEmbedding.load_pretrained("pyannote-openslr")
-
-    # Train or use pre-trained SpeakerDiarization pipeline
-    pipeline = SpeakerDiarization(embedding)
-    hypothesis = pipeline({"audio": audio_file})
+    # Apply the pretrained model
+    hypothesis = pretrained({"mono": audio_file})
 
     segments = []
     for segment, _, speaker in hypothesis.itertracks(yield_label=True):
@@ -38,7 +37,7 @@ def split_audio_by_speakers(audio_file, output_folder='output'):
         speaker_folder = os.path.join(output_folder, f"speaker_{speaker_label}")
         os.makedirs(speaker_folder, exist_ok=True)
 
-        # Save the current speaker's audio segment in their subdirectory
+        # Save current speaker's audio segment in their subdirectory
         output_path = os.path.join(speaker_folder, f"speaker_{speaker_label}_{idx}.wav")
         speaker_audio.export(output_path, format="wav")
 
