@@ -1,6 +1,6 @@
 librosa
 webrtcvad
 pydub
-pyannote.audio==1.1.1
-pyannote.pipeline==1.6.1
+pyannote.audio
+pyannote.pipeline
 pyannote.database
