@@ -7,4 +7,3 @@ pyannote.audio
 pyannote.pipeline
 pyannote.database
 einops>=0.3.0
-
