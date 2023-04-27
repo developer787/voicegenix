@@ -1,0 +1,5 @@
+librosa
+webrtcvad
+pydub
+pyannote.audio
+pyannote.database
